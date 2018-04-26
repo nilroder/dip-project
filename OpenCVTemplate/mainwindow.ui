@@ -48,6 +48,9 @@
       <string>Imagem colorida</string>
      </property>
      <addaction name="actionBrilho"/>
+     <addaction name="actionMedianaColor"/>
+     <addaction name="actionEqualizaColor"/>
+     <addaction name="actionGaussianaColor"/>
     </widget>
     <addaction name="actionNegativo"/>
     <addaction name="actionAjuste_de_Contraste"/>
@@ -142,6 +145,21 @@
   <action name="actionMaximo">
    <property name="text">
     <string>Maximo</string>
+   </property>
+  </action>
+  <action name="actionMedianaColor">
+   <property name="text">
+    <string>Mediana</string>
+   </property>
+  </action>
+  <action name="actionEqualizaColor">
+   <property name="text">
+    <string>Equalizaço</string>
+   </property>
+  </action>
+  <action name="actionGaussianaColor">
+   <property name="text">
+    <string>Gaussiana</string>
    </property>
   </action>
  </widget>

@@ -43,6 +43,12 @@ private slots:
 
     void on_actionBrilho_triggered();
 
+    void on_actionMedianaColor_triggered();
+
+    void on_actionEqualizaColor_triggered();
+
+    void on_actionGaussianaColor_triggered();
+
 private:
     Ui::MainWindow *ui;
     PDI *pdi;

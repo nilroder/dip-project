@@ -82,3 +82,15 @@ void MainWindow::on_actionBrilho_triggered()
 {
     pdi->brilhoHSV();
 }
+
+void MainWindow::on_actionMedianaColor_triggered(){
+    pdi->medianaHSV();
+}
+
+void MainWindow::on_actionEqualizaColor_triggered(){
+    pdi->equalizacaoHistogramaHSV();
+}
+
+void MainWindow::on_actionGaussianaColor_triggered(){
+    pdi->gaussianaHSV();
+}

@@ -28,6 +28,9 @@ class PDI
         void filtroMinimo();
         void filtroMaximo();
         void brilhoHSV();
+        void medianaHSV();
+        void equalizacaoHistogramaHSV();
+        void gaussianaHSV();
 
         //atributos
         Mat imagemRGB;

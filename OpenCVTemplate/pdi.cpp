@@ -139,93 +139,46 @@ void PDI::potencia(){
      imshow("Transf de Potencia ", p);
 }
 
-
 void PDI::equalizacaoHistograma(){
 
     Mat equal = imagemCINZA.clone();
     //HISTOGRAMA - IMAGEM EM ESCALA DE CINZA
-    int h[256];
+    float h[256];
 
     //inicia o vetor com zeros
     for(int i=0;i<256;i++) h[i]=0;
 
     //calcula a distribuicao dos niveis de cinza
-    int nivel = 0;
     for(int x=0;x<equal.rows;x++){
         for(int y=0;y<equal.cols;y++){
-            nivel = (int)equal.at<uchar>(x,y);
-            h[nivel] += 1;
+            h[(int)equal.at<uchar>(x,y)] += 1;
         }
     }
 
     //vetor do histograma normalizado
-    float hn[256];
-    float imgSize = equal.rows * equal.cols;
+    float tamanho = equal.rows * equal.cols;
     for(int i=0;i<256;i++){
-        hn[i]=h[i]/imgSize;
+        h[i]=h[i]/tamanho;
     }
 
     //vetor do histograma normalizado acumulado
-    float hna[256];
-    hna[0] = hn[0];
     for(int x=1; x<256; x++){
-        hna[x] = hn[x]+hna[x-1];
+        h[x] = h[x]+h[x-1];
     }
 
     //calculo do histograma equalizado
-    float hne[256];
     for(int x=0; x<256; x++){
-        hne[x] = round((255)*hna[x]);
+        h[x] = round((255)*h[x]);
     }
 
-    //substituicao dos valores na imagem final
-    int finalNivel = 0;
+    //imagem final
     for(int x=0;x<equal.rows;x++){
         for(int y=0;y<equal.cols;y++){
-            finalNivel = (int)equal.at<uchar>(x,y);
-            equal.at<uchar>(x,y) = (int)hne[finalNivel];
+            equal.at<uchar>(x,y) = (int)h[(int)equal.at<uchar>(x,y)];
         }
     }
 
     imshow("Imagem equalizada", equal);
-
-    //HISTOGRAMA - IMAGEM EM ESCALA DE CINZA
-    int hst[256];
-
-    //inicia o vetor com zeros
-    for(int i=0;i<256;i++) hst[i]=0;
-
-    //calcula a distribuicao dos niveis de cinza
-    int hstNivel = 0;
-    for(int x=0;x<equal.rows;x++){
-        for(int y=0;y<equal.cols;y++){
-            hstNivel = (int)equal.at<uchar>(x,y);
-            hst[hstNivel] += 1;
-        }
-    }
-
-    //normalizar vetor para plotar o grafico
-    int hstMaior=0;
-    for(int i=0;i<256;i++){
-        if(hst[i]>hstMaior) hstMaior=hst[i];
-    }
-    int hstn[256];
-    for(int i=0;i<256;i++){
-        hstn[i]=round(hst[i]*255/hstMaior);
-    }
-
-    //criar imagem em branco para o histrograma
-    int altura=256; int largura=512;
-    Mat imagemH(altura,largura,CV_8UC3,Scalar(255,255,255));
-    Point pt1 = Point(0,0); Point pt2 = Point(0,0);
-    for(int i=0; i<altura; i++){
-        pt1.x=i*2;pt1.y=altura-1;
-        pt2.x=i*2;pt2.y=pt1.y-hstn[i];
-        line(imagemH,pt1,pt2,Scalar(255,100,50+hstn[i]),1,8);
-    }
-
-    //exibe a imagem na janela
-    imshow("Histograma equalizado", imagemH);
 }
 
 int maxmin(int vet[], bool x){
@@ -470,4 +423,153 @@ void PDI::brilhoHSV(){
     cvtColor(imagemHSV, imagemSaida, CV_HSV2BGR);
     //exibe a imagem RGB na janela
     imshow("Ajuste de Brilho", imagemSaida);
+}
+
+void PDI::medianaHSV(){
+    Mat imagemHSV;
+    //converte uma imagem RGB para HSV
+    cvtColor(imagemRGB, imagemHSV, CV_BGR2HSV);
+    vector<Mat> planosHSV;
+    //divide a imagem HSV em 3 planos de pixels
+    split(imagemHSV, planosHSV);
+    //obtem apenas o plano V
+    Mat V = planosHSV[2];
+    //percorre apenas o plano V
+    for(int x=0;x<imagemHSV.rows;x++){
+        for(int y=0;y<imagemHSV.cols;y++){
+            int m[9];
+            int k=0;
+            for(int i=-1; i<2; i++){
+                for (int j=-1; j<2; j++){
+                    //caso pixels da mascara estejam fora dos limites da imagem
+                    //usa-se espelhamento de pixels
+                    if(((x+i)<0 && (y+j)<0)||((x+i)>=V.rows && (y+j)>=V.cols)) m[k] = V.at<uchar>(x-i,y-j);
+                    else if(((x+i)<0)||((x+i)>=V.rows)) m[k] = V.at<uchar>(x-i,y+j);
+                    else if(((y+i)<0)||((y+i)>=V.cols)) m[k] = V.at<uchar>(x+i,y-j);
+                    //caso todos os pixels da mascara estejam dentro dos limites da imagem
+                    else m[k] = V.at<uchar>(x+i,y+j);
+                    k++;
+                }
+            }
+            int mediana = medianaVetor(m);
+            V.at<uchar>(x,y)=mediana;
+        }
+    }
+    //combina os 3 planos de pixels (H,S,V) novamente
+    merge(planosHSV,imagemHSV);
+    Mat imagemSaida;
+    //converte uma imagem HSV para RGB
+    cvtColor(imagemHSV, imagemSaida, CV_HSV2BGR);
+    //exibe a imagem RGB na janela
+    imshow("Filtro Mediana", imagemSaida);
+}
+
+void PDI::equalizacaoHistogramaHSV(){
+
+    Mat imagemHSV;
+    //converte uma imagem RGB para HSV
+    cvtColor(imagemRGB, imagemHSV, CV_BGR2HSV);
+    vector<Mat> planosHSV;
+    //divide a imagem HSV em 3 planos de pixels
+    split(imagemHSV, planosHSV);
+    //obtem apenas o plano V
+    Mat V = planosHSV[2];
+
+    //HISTOGRAMA - IMAGEM EM ESCALA DE CINZA
+    float h[256];
+
+    //inicia o vetor com zeros
+    for(int i=0;i<256;i++) h[i]=0;
+
+    //calcula a distribuicao dos niveis de cinza
+    for(int x=0;x<V.rows;x++){
+        for(int y=0;y<V.cols;y++){
+            h[(int)V.at<uchar>(x,y)] += 1;
+        }
+    }
+
+    //vetor do histograma normalizado
+    float tamanho = V.rows * V.cols;
+    for(int i=0;i<256;i++){
+        h[i]=h[i]/tamanho;
+    }
+
+    //vetor do histograma normalizado acumulado
+    for(int x=1; x<256; x++){
+        h[x] = h[x]+h[x-1];
+    }
+
+    //calculo do histograma equalizado
+    for(int x=0; x<256; x++){
+        h[x] = round((255)*h[x]);
+    }
+
+    //imagem final
+    for(int x=0;x<V.rows;x++){
+        for(int y=0;y<V.cols;y++){
+            V.at<uchar>(x,y) = (int)h[(int)V.at<uchar>(x,y)];
+        }
+    }
+
+    //combina os 3 planos de pixels (H,S,V) novamente
+    merge(planosHSV,imagemHSV);
+    Mat imagemSaida;
+    //converte uma imagem HSV para RGB
+    cvtColor(imagemHSV, imagemSaida, CV_HSV2BGR);
+    //exibe a imagem RGB na janela
+    imshow("Imagem Equalizada", imagemSaida);
+
+}
+
+void PDI::gaussianaHSV(){
+    Mat imagemHSV;
+    //converte uma imagem RGB para HSV
+    cvtColor(imagemRGB, imagemHSV, CV_BGR2HSV);
+    vector<Mat> planosHSV;
+    //divide a imagem HSV em 3 planos de pixels
+    split(imagemHSV, planosHSV);
+    //obtem apenas o plano V
+    Mat V = planosHSV[2];
+
+    float gaus[5][5];
+    float count = 0;
+
+    for(int i=-2; i<3; i++){
+        for(int j=-2; j<3; j++){
+            gaus[i+2][j+2] = gaussiano(i, j);
+            count += gaus[i+2][j+2];
+        }
+    }
+
+    for(int i=0; i<5; i++){
+        for(int j=0; j<5; j++){
+            gaus[i][j] = gaus[i][j]/count;
+        }
+    }
+
+    //percorre apenas o plano V
+    for(int x=0;x<imagemHSV.rows;x++){
+        for(int y=0;y<imagemHSV.cols;y++){
+            float soma=0;
+            for(int i=-1; i<2; i++){
+                for (int j=-1; j<2; j++){
+                    //caso pixels da mascara estejam fora dos limites da imagem
+                    //usa-se espelhamento de pixels
+                    if(((x+i)<0 && (y+j)<0)||((x+i)>=V.rows && (y+j)>=V.cols)) soma += V.at<uchar>(x-i,y-j)*gaus[i+2][j+2];
+                    else if(((x+i)<0)||((x+i)>=V.rows)) soma += V.at<uchar>(x-i,y+j)*gaus[i+2][j+2];
+                    else if(((y+i)<0)||((y+i)>=V.cols)) soma += V.at<uchar>(x+i,y-j)*gaus[i+2][j+2];
+                    //caso todos os pixels da mascara estejam dentro dos limites da imagem
+                    else soma += V.at<uchar>(x+i,y+j)*gaus[i+2][j+2];
+                }
+            }
+            V.at<uchar>(x,y)=soma;
+        }
+    }
+    //combina os 3 planos de pixels (H,S,V) novamente
+    merge(planosHSV,imagemHSV);
+    Mat imagemSaida;
+    //converte uma imagem HSV para RGB
+    cvtColor(imagemHSV, imagemSaida, CV_HSV2BGR);
+    //exibe a imagem RGB na janela
+    imshow("Filtro Gaussiana", imagemSaida);
 }
